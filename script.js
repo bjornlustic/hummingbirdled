@@ -13,7 +13,8 @@ class LEDMatrixSimulator {
             split: false,
             swarm: false,
             move: false,
-            breathing: false
+            breathing: false,
+            pollination: false
         };
         this.scale = 1.0;
         this.position = { x: 32, y: 32 };
@@ -23,6 +24,25 @@ class LEDMatrixSimulator {
             moveTimer: 0,
             pauseTimer: 0,
             isMoving: false
+        };
+
+        // Pollination animation state
+        this.pollinationData = {
+            timer: 0,
+            flowerPos: { x: 21, y: 22 }, // Flower positioned further left and higher
+            flowerScale: 0.9, // Static at final size
+            flowerWiggle: { x: 0, y: 0 }, // For subtle movement during pollination
+            currentBirdIndex: 0,
+            birds: [], // Will hold multiple birds
+            maxBirds: 4, // Number of birds in rotation
+            animationDuration: {
+                flyIn: 40,      // 40 frames flying in from left
+                pollinate: 80,  // 80 frames pollinating 
+                flyOut: 40      // 40 frames flying out to right
+            },
+            birdCycleDuration: 160, // Total time for one bird cycle
+            totalCycleDuration: 640, // Total time for all birds (160 * 4)
+            pollinationActive: false // Track if any bird is currently pollinating
         };
 
         // Individual bird data for swarm mode
@@ -41,6 +61,25 @@ class LEDMatrixSimulator {
         this.loadImages();
         this.setupEventListeners();
         this.updateControls();
+        this.initializePollinationBirds();
+    }
+
+    initializePollinationBirds() {
+        this.pollinationData.birds = [];
+        const hueStep = 360 / this.pollinationData.maxBirds; // Distribute hues evenly
+
+        for (let i = 0; i < this.pollinationData.maxBirds; i++) {
+            this.pollinationData.birds.push({
+                phase: 'waiting', // waiting, flyIn, pollinate, flyOut
+                timer: 0,
+                position: { x: -15, y: 22 },
+                scale: 0.8,
+                hue: i * hueStep, // 0°, 90°, 180°, 270° for 4 birds
+                saturation: 0.8 + (i * 0.05), // Slight saturation variation
+                brightness: 0.9 + (i * 0.025), // Slight brightness variation
+                startDelay: i * this.pollinationData.birdCycleDuration // Stagger bird starts
+            });
+        }
     }
 
     createMatrix() {
@@ -112,7 +151,9 @@ class LEDMatrixSimulator {
         try {
             const frame1 = await this.loadImageToMatrix('./hummingbird/hummingbird1.png');
             const frame2 = await this.loadImageToMatrix('./hummingbird/hummingbird2.png');
+            const flowerFrame = await this.loadImageToMatrix('./flower/flower1.png');
             this.frames = [frame1, frame2];
+            this.flowerFrame = flowerFrame;
             this.displayFrame(0);
             console.log('Images loaded successfully');
         } catch (error) {
@@ -222,7 +263,9 @@ class LEDMatrixSimulator {
         let displayFrame = frame;
 
         // Apply effects
-        if (this.effects.split && this.effects.swarm) {
+        if (this.effects.pollination) {
+            displayFrame = this.applyPollinationEffect(frame);
+        } else if (this.effects.split && this.effects.swarm) {
             displayFrame = this.applySplitSwarmEffect(frame);
         } else if (this.effects.split && this.effects.move) {
             displayFrame = this.applySplitMoveEffect(frame);
@@ -581,6 +624,275 @@ class LEDMatrixSimulator {
         }
 
         return newFrame;
+    }
+
+    applyPollinationEffect(frame) {
+        const newFrame = Array(this.matrixSize).fill().map(() =>
+            Array(this.matrixSize).fill({ r: 0, g: 0, b: 0 })
+        );
+
+        this.updatePollinationAnimation();
+
+        const data = this.pollinationData;
+
+        // Calculate flower position with wiggle effect
+        const flowerX = data.flowerPos.x + data.flowerWiggle.x;
+        const flowerY = data.flowerPos.y + data.flowerWiggle.y;
+
+        // Draw static flower at final size
+        this.drawFlowerAtPosition(newFrame, flowerX, flowerY, data.flowerScale);
+
+        // Draw all active birds
+        data.birds.forEach((bird, index) => {
+            if (bird.phase !== 'waiting') {
+                let drawOrder = 'normal'; // hummingbird on top
+
+                if (bird.phase === 'flyIn' || bird.phase === 'pollinate') {
+                    drawOrder = 'behind'; // hummingbird behind flower during fly in and pollination
+                }
+
+                if (drawOrder === 'behind') {
+                    // Draw hummingbird first, then flower on top
+                    this.drawColoredHummingbirdAtPosition(newFrame, frame, bird.position.x, bird.position.y, bird.scale, bird);
+                    this.drawFlowerAtPosition(newFrame, flowerX, flowerY, data.flowerScale);
+                } else {
+                    // Draw hummingbird on top of flower
+                    this.drawColoredHummingbirdAtPosition(newFrame, frame, bird.position.x, bird.position.y, bird.scale, bird);
+                }
+            }
+        });
+
+        return newFrame;
+    }
+
+    updatePollinationAnimation() {
+        const data = this.pollinationData;
+        data.timer++;
+
+        // Reset timer if cycle is complete
+        if (data.timer >= data.totalCycleDuration) {
+            data.timer = 0;
+            // Reset all birds
+            data.birds.forEach(bird => {
+                bird.phase = 'waiting';
+                bird.timer = 0;
+                bird.position.x = -15;
+                bird.position.y = 22;
+                bird.scale = 0.8; // Fix: Reset scale to prevent small birds
+            });
+        }
+
+        // Update flower wiggle effect based on pollination activity
+        data.pollinationActive = false;
+
+        // Update each bird
+        data.birds.forEach((bird, index) => {
+            // Check if this bird should start its cycle
+            if (bird.phase === 'waiting' && data.timer >= bird.startDelay) {
+                bird.phase = 'flyIn';
+                bird.timer = 0;
+                bird.scale = 0.8; // Ensure proper scale when starting new cycle
+            }
+
+            if (bird.phase !== 'waiting') {
+                bird.timer++;
+                this.updateBirdPhase(bird, data);
+
+                // Check if any bird is pollinating for flower wiggle
+                if (bird.phase === 'pollinate') {
+                    data.pollinationActive = true;
+                }
+            }
+        });
+
+        // Update flower wiggle based on pollination activity
+        this.updateFlowerWiggle(data);
+    }
+
+    updateBirdPhase(bird, data) {
+        const phaseDuration = data.animationDuration;
+
+        if (bird.phase === 'flyIn') {
+            // Bird flies in from left to flower
+            const progress = bird.timer / phaseDuration.flyIn;
+            bird.position.x = -15 + (43 + 15) * progress; // From -15 to pollination position (43, adjusted for flower move)
+            bird.position.y = 44 + Math.sin(progress * Math.PI) * 3; // Slight arc to pollination position (44)
+
+            if (bird.timer >= phaseDuration.flyIn) {
+                bird.phase = 'pollinate';
+                bird.timer = 0;
+            }
+        } else if (bird.phase === 'pollinate') {
+            // Bird pollinates at flower with gentle movement
+            const progress = bird.timer / phaseDuration.pollinate;
+            bird.position.x = 43 + Math.sin(progress * Math.PI * 8) * 1.5; // Gentle side movement (adjusted for flower move)
+            bird.position.y = 44 + Math.cos(progress * Math.PI * 10) * 0.8; // Gentle up/down movement
+
+            if (bird.timer >= phaseDuration.pollinate) {
+                bird.phase = 'flyOut';
+                bird.timer = 0;
+            }
+        } else if (bird.phase === 'flyOut') {
+            // Bird flies out to the top right middle
+            const progress = bird.timer / phaseDuration.flyOut;
+            const startX = 43; // Adjusted for flower move
+            const startY = 44;
+            const endX = this.matrixSize + 15; // Off screen right
+            const endY = this.matrixSize * 0.25; // Top right middle area
+
+            bird.position.x = startX + (endX - startX) * progress;
+            bird.position.y = startY + (endY - startY) * progress; // Straight line to top right middle
+            bird.scale = 0.8 * (1 - progress * 0.6); // Shrink as it flies away
+
+            if (bird.timer >= phaseDuration.flyOut) {
+                bird.phase = 'waiting';
+                bird.timer = 0;
+                bird.scale = 0.8; // Reset scale for next cycle
+            }
+        }
+    }
+
+    updateFlowerWiggle(data) {
+        if (data.pollinationActive) {
+            // Subtle wiggle when being pollinated
+            const wiggleIntensity = 0.8;
+            data.flowerWiggle.x = Math.sin(data.timer * 0.3) * wiggleIntensity;
+            data.flowerWiggle.y = Math.cos(data.timer * 0.4) * (wiggleIntensity * 0.5);
+        } else {
+            // Very gentle movement when not being pollinated
+            data.flowerWiggle.x = Math.sin(data.timer * 0.1) * 0.2;
+            data.flowerWiggle.y = Math.cos(data.timer * 0.08) * 0.15;
+        }
+    }
+
+    drawFlowerAtPosition(targetFrame, centerX, centerY, scale = 0.6) {
+        if (!this.flowerFrame) return;
+
+        const scaledSize = Math.floor(this.matrixSize * scale);
+        const offsetX = centerX - scaledSize / 2;
+        const offsetY = centerY - scaledSize / 2;
+
+        for (let y = 0; y < scaledSize; y++) {
+            for (let x = 0; x < scaledSize; x++) {
+                const sourceX = Math.floor(x / scale);
+                const sourceY = Math.floor(y / scale);
+                const targetX = Math.floor(offsetX + x);
+                const targetY = Math.floor(offsetY + y);
+
+                if (sourceX >= 0 && sourceX < this.matrixSize &&
+                    sourceY >= 0 && sourceY < this.matrixSize &&
+                    targetX >= 0 && targetX < this.matrixSize &&
+                    targetY >= 0 && targetY < this.matrixSize) {
+
+                    const sourcePixel = this.flowerFrame[sourceY][sourceX];
+                    if (sourcePixel.r > 0 || sourcePixel.g > 0 || sourcePixel.b > 0) {
+                        targetFrame[targetY][targetX] = sourcePixel;
+                    }
+                }
+            }
+        }
+    }
+
+
+    drawHummingbirdAtPosition(targetFrame, sourceFrame, centerX, centerY, scale) {
+        const scaledSize = Math.floor(this.matrixSize * scale);
+        const offsetX = centerX - scaledSize / 2;
+        const offsetY = centerY - scaledSize / 2;
+
+        for (let y = 0; y < scaledSize; y++) {
+            for (let x = 0; x < scaledSize; x++) {
+                const sourceX = Math.floor(x / scale);
+                const sourceY = Math.floor(y / scale);
+                const targetX = Math.floor(offsetX + x);
+                const targetY = Math.floor(offsetY + y);
+
+                if (sourceX >= 0 && sourceX < this.matrixSize &&
+                    sourceY >= 0 && sourceY < this.matrixSize &&
+                    targetX >= 0 && targetX < this.matrixSize &&
+                    targetY >= 0 && targetY < this.matrixSize) {
+
+                    const sourcePixel = sourceFrame[sourceY][sourceX];
+                    if (sourcePixel.r > 0 || sourcePixel.g > 0 || sourcePixel.b > 0) {
+                        targetFrame[targetY][targetX] = sourcePixel;
+                    }
+                }
+            }
+        }
+    }
+
+    drawColoredHummingbirdAtPosition(targetFrame, sourceFrame, centerX, centerY, scale, bird) {
+        const scaledSize = Math.floor(this.matrixSize * scale);
+        const offsetX = centerX - scaledSize / 2;
+        const offsetY = centerY - scaledSize / 2;
+
+        for (let y = 0; y < scaledSize; y++) {
+            for (let x = 0; x < scaledSize; x++) {
+                const sourceX = Math.floor(x / scale);
+                const sourceY = Math.floor(y / scale);
+                const targetX = Math.floor(offsetX + x);
+                const targetY = Math.floor(offsetY + y);
+
+                if (sourceX >= 0 && sourceX < this.matrixSize &&
+                    sourceY >= 0 && sourceY < this.matrixSize &&
+                    targetX >= 0 && targetX < this.matrixSize &&
+                    targetY >= 0 && targetY < this.matrixSize) {
+
+                    const sourcePixel = sourceFrame[sourceY][sourceX];
+                    if (sourcePixel.r > 0 || sourcePixel.g > 0 || sourcePixel.b > 0) {
+                        // Apply color transformation based on bird's hue
+                        const coloredPixel = this.applyHueShift(sourcePixel, bird.hue, bird.saturation, bird.brightness);
+                        targetFrame[targetY][targetX] = coloredPixel;
+                    }
+                }
+            }
+        }
+    }
+
+    applyHueShift(pixel, hue, saturation, brightness) {
+        // Convert RGB to HSL, apply hue shift, convert back to RGB
+        const r = pixel.r / 255;
+        const g = pixel.g / 255;
+        const b = pixel.b / 255;
+
+        // Convert RGB to HSL
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const delta = max - min;
+
+        let h = 0;
+        if (delta !== 0) {
+            if (max === r) h = ((g - b) / delta) % 6;
+            else if (max === g) h = (b - r) / delta + 2;
+            else h = (r - g) / delta + 4;
+        }
+        h = (h * 60 + hue) % 360;
+        if (h < 0) h += 360;
+
+        const l = (max + min) / 2;
+        const s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+
+        // Apply saturation and brightness modifications
+        const finalS = Math.min(1, s * saturation);
+        const finalL = Math.min(1, l * brightness);
+
+        // Convert HSL back to RGB
+        const c = (1 - Math.abs(2 * finalL - 1)) * finalS;
+        const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+        const m = finalL - c / 2;
+
+        let newR, newG, newB;
+        if (h < 60) { newR = c; newG = x; newB = 0; }
+        else if (h < 120) { newR = x; newG = c; newB = 0; }
+        else if (h < 180) { newR = 0; newG = c; newB = x; }
+        else if (h < 240) { newR = 0; newG = x; newB = c; }
+        else if (h < 300) { newR = x; newG = 0; newB = c; }
+        else { newR = c; newG = 0; newB = x; }
+
+        return {
+            r: Math.floor((newR + m) * 255),
+            g: Math.floor((newG + m) * 255),
+            b: Math.floor((newB + m) * 255)
+        };
     }
 
     updateHummingbirdMovement() {
@@ -1064,8 +1376,8 @@ class LEDMatrixSimulator {
                 led.style.color = color;
             } else {
                 led.classList.remove('on');
-                led.style.backgroundColor = '#111';
-                led.style.color = '#111';
+                led.style.backgroundColor = '#000';
+                led.style.color = '#000';
             }
         });
 
@@ -1232,6 +1544,7 @@ class LEDMatrixSimulator {
         document.getElementById('swarmBtn').addEventListener('click', () => this.toggleEffect('swarm'));
         document.getElementById('moveBtn').addEventListener('click', () => this.toggleEffect('move'));
         document.getElementById('breatheBtn').addEventListener('click', () => this.toggleEffect('breathing'));
+        document.getElementById('pollinationBtn').addEventListener('click', () => this.toggleEffect('pollination'));
 
         // Export button
         document.getElementById('exportBtn').addEventListener('click', () => this.exportFrameData());
@@ -1289,16 +1602,35 @@ class LEDMatrixSimulator {
 
     toggleEffect(effectName) {
         // Handle effect combinations
-        if (effectName === 'move') {
-            // Move can work with split, but not with swarm
+        if (effectName === 'pollination') {
+            // Pollination is exclusive - disable other effects
+            this.effects.split = false;
             this.effects.swarm = false;
+            this.effects.move = false;
+            this.effects[effectName] = !this.effects[effectName];
+            if (this.effects.pollination) {
+                // Reset pollination animation to start from beginning
+                this.pollinationData.timer = 0;
+                this.pollinationData.birds.forEach(bird => {
+                    bird.phase = 'waiting';
+                    bird.timer = 0;
+                    bird.position.x = -15;
+                    bird.position.y = 22;
+                    bird.scale = 0.8;
+                });
+            }
+        } else if (effectName === 'move') {
+            // Move can work with split, but not with swarm or pollination
+            this.effects.swarm = false;
+            this.effects.pollination = false;
             this.effects[effectName] = !this.effects[effectName];
             if (this.effects.move) {
                 this.resetMoveData();
             }
         } else if (effectName === 'swarm') {
-            // Swarm can work with split, but not with move
+            // Swarm can work with split, but not with move or pollination
             this.effects.move = false;
+            this.effects.pollination = false;
             this.effects[effectName] = !this.effects[effectName];
             // Reset swarm birds to get new random speeds/behaviors
             this.swarmBirds = null;
@@ -1307,7 +1639,10 @@ class LEDMatrixSimulator {
                 this.splitSwarmBirds = null;
             }
         } else {
-            // Split and breathing can combine with any effect
+            // Split and breathing can combine with any effect except pollination
+            if (effectName === 'split' || effectName === 'breathing') {
+                this.effects.pollination = false;
+            }
             this.effects[effectName] = !this.effects[effectName];
 
             // Reset split swarm birds when split effect is toggled and swarm is active

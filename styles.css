@@ -261,13 +261,13 @@ textarea:focus {
 .led {
     /* Width and height set dynamically by JavaScript */
     border-radius: 50%;
-    background-color: #111;
+    background-color: #000;
     transition: all 0.1s ease;
     border: none;
 }
 
 .led.on {
-    box-shadow: 0 0 4px currentColor, 0 0 8px currentColor;
+    box-shadow: 0 0 8px currentColor, 0 0 16px currentColor;
 }
 
 /* Matrix info styles removed since element was deleted */
