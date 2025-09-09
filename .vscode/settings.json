@@ -1,0 +1,24 @@
+{
+    "files.watcherExclude": {
+        "**/node_modules/**": true
+    },
+    "search.exclude": {
+        "**/node_modules": true
+    },
+    "files.associations": {
+        "*.js": "javascript",
+        "*.html": "html",
+        "*.css": "css"
+    },
+    "emmet.includeLanguages": {
+        "javascript": "javascriptreact"
+    },
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit"
+    },
+    "liveServer.settings.port": 8080,
+    "liveServer.settings.host": "127.0.0.1",
+    "liveServer.settings.donotShowInfoMsg": true,
+    "terminal.integrated.defaultProfile.osx": "zsh"
+}

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Speed Slider Diagnostic Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #000;
+            color: #0f0;
+        }
+
+        .test {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #0f0;
+        }
+
+        input {
+            margin: 10px;
+        }
+
+        button {
+            margin: 5px;
+            padding: 5px 10px;
+        }
+
+        .result {
+            background: #001100;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        .error {
+            color: #f00;
+        }
+
+        .success {
+            color: #0f0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔧 Speed Slider Diagnostic Test</h1>
+
+    <div class="test">
+        <h2>Test 1: Basic Slider Functionality</h2>
+        <label>Min Speed: <input type="range" id="testMinSpeed" min="0.01" max="2.0" value="0.1" step="0.01"></label>
+        <span id="minValue">0.1</span><br>
+        <label>Max Speed: <input type="range" id="testMaxSpeed" min="0.02" max="4.0" value="1.2" step="0.01"></label>
+        <span id="maxValue">1.2</span><br>
+        <button onclick="testSliderValues()">Test Slider Values</button>
+        <div id="sliderResult" class="result"></div>
+    </div>
+
+    <div class="test">
+        <h2>Test 2: Speed Calculation Math</h2>
+        <button onclick="testSpeedCalculation()">Test Speed Math</button>
+        <div id="mathResult" class="result"></div>
+    </div>
+
+    <div class="test">
+        <h2>Test 3: Main App Integration</h2>
+        <button onclick="testMainApp()">Test Main App</button>
+        <div id="appResult" class="result"></div>
+    </div>
+
+    <div class="test">
+        <h2>Test 4: Automated Slider Test</h2>
+        <button onclick="runAutomatedTest()">Run Full Test</button>
+        <div id="autoResult" class="result"></div>
+    </div>
+
+    <script>
+        let testMinSpeed = 0.1;
+        let testMaxSpeed = 1.2;
+
+        console.log('🔧 Diagnostic test loaded');
+
+        document.getElementById('testMinSpeed').addEventListener('input', (e) => {
+            testMinSpeed = parseFloat(e.target.value);
+            document.getElementById('minValue').textContent = testMinSpeed;
+            console.log('Test slider changed: min =', testMinSpeed);
+        });
+
+        document.getElementById('testMaxSpeed').addEventListener('input', (e) => {
+            testMaxSpeed = parseFloat(e.target.value);
+            document.getElementById('maxValue').textContent = testMaxSpeed;
+            console.log('Test slider changed: max =', testMaxSpeed);
+        });
+
+        function testSliderValues() {
+            const result = document.getElementById('sliderResult');
+            const ratio = testMaxSpeed / testMinSpeed;
+            const isValid = testMaxSpeed > testMinSpeed && ratio > 1.5;
+
+            result.innerHTML = `
+                <h3>✅ Slider Test Results:</h3>
+                <p>Min Speed: ${testMinSpeed}</p>
+                <p>Max Speed: ${testMaxSpeed}</p>
+                <p>Range: ${(testMaxSpeed - testMinSpeed).toFixed(3)}</p>
+                <p>Ratio: ${ratio.toFixed(1)}x</p>
+                <p class="${isValid ? 'success' : 'error'}">
+                    Status: ${isValid ? '✅ Valid (good speed difference)' : '❌ Too narrow range'}
+                </p>
+            `;
+            console.log('Slider test:', { min: testMinSpeed, max: testMaxSpeed, ratio });
+            return isValid;
+        }
+
+        function testSpeedCalculation() {
+            const result = document.getElementById('mathResult');
+            const numBirds = 4;
+            let output = '<h3>🧮 Speed Calculation Test:</h3>';
+            let speeds = [];
+
+            for (let i = 0; i < numBirds; i++) {
+                let birdSpeed;
+                if (numBirds === 1) {
+                    birdSpeed = (testMinSpeed + testMaxSpeed) / 2;
+                } else {
+                    const speedRange = testMaxSpeed - testMinSpeed;
+                    birdSpeed = testMinSpeed + (i / (numBirds - 1)) * speedRange;
+                }
+
+                const clampedSpeed = Math.max(testMinSpeed, Math.min(testMaxSpeed, birdSpeed));
+                const effectiveSpeed = Math.max(0.01, Math.min(4.0, clampedSpeed));
+                const speedMultiplier = 0.5;
+                const trajectoryRange = 144;
+                const pixelsPerSecond = ((effectiveSpeed * speedMultiplier) / trajectoryRange) * trajectoryRange * 60;
+
+                speeds.push(pixelsPerSecond);
+                output += `<p>Bird ${i}: ${clampedSpeed.toFixed(3)}x → ${pixelsPerSecond.toFixed(1)} px/s</p>`;
+            }
+
+            const minPxSec = Math.min(...speeds);
+            const maxPxSec = Math.max(...speeds);
+            const speedRatio = maxPxSec / minPxSec;
+
+            output += `<h4>Analysis:</h4>`;
+            output += `<p>Slowest: ${minPxSec.toFixed(1)} px/s</p>`;
+            output += `<p>Fastest: ${maxPxSec.toFixed(1)} px/s</p>`;
+            output += `<p class="${speedRatio > 3 ? 'success' : 'error'}">Ratio: ${speedRatio.toFixed(1)}x ${speedRatio > 3 ? '✅' : '❌'}</p>`;
+
+            result.innerHTML = output;
+            console.log('Speed calculation test:', { speeds, ratio: speedRatio });
+            return speedRatio > 3;
+        }
+
+        function testMainApp() {
+            const result = document.getElementById('appResult');
+
+            try {
+                // Try to access the main app through various methods
+                let sim = null;
+
+                if (window.opener && window.opener.ledSimulator) {
+                    sim = window.opener.ledSimulator;
+                } else if (parent && parent.ledSimulator) {
+                    sim = parent.ledSimulator;
+                } else if (window.ledSimulator) {
+                    sim = window.ledSimulator;
+                }
+
+                if (sim) {
+                    result.innerHTML = `
+                        <h3>🔗 Main App Integration:</h3>
+                        <p class="success">Simulator found: ✅</p>
+                        <p>Swarm active: ${sim.effects?.swarm ? '✅' : '❌'}</p>
+                        <p>Current range: ${sim.swarmMinSpeed}x - ${sim.swarmMaxSpeed}x</p>
+                        <p>Bird count: ${sim.swarmBirds?.length || 0}</p>
+                        <p>Max birds setting: ${sim.maxSwarmBirds}</p>
+                    `;
+
+                    if (sim.swarmBirds && sim.swarmBirds.length > 0) {
+                        result.innerHTML += '<h4>Bird Speeds:</h4>';
+                        sim.swarmBirds.forEach((bird, i) => {
+                            result.innerHTML += `<p>Bird ${i}: base=${bird.baseSpeed?.toFixed(3)}x, current=${bird.currentSpeed?.toFixed(3)}x</p>`;
+                        });
+
+                        const speeds = sim.swarmBirds.map(b => b.baseSpeed);
+                        const minSpeed = Math.min(...speeds);
+                        const maxSpeed = Math.max(...speeds);
+                        result.innerHTML += `<p class="success">Speed range: ${minSpeed.toFixed(3)} to ${maxSpeed.toFixed(3)} (${(maxSpeed / minSpeed).toFixed(1)}x)</p>`;
+                    }
+
+                    return true;
+                } else {
+                    result.innerHTML = `
+                        <h3 class="error">❌ Main App Not Found</h3>
+                        <p>Cannot access main simulator</p>
+                        <p>Instructions:</p>
+                        <ol>
+                            <li>Open main app (index.html)</li>
+                            <li>Enable swarm mode</li>
+                            <li>Open this diagnostic in new tab</li>
+                            <li>Or run tests in main app console</li>
+                        </ol>
+                    `;
+                    return false;
+                }
+            } catch (error) {
+                result.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+                return false;
+            }
+        }
+
+        function runAutomatedTest() {
+            console.log('🚀 Running automated diagnostic test...');
+            const result = document.getElementById('autoResult');
+
+            let output = '<h3>🤖 Automated Test Results:</h3>';
+            let allPassed = true;
+
+            // Test 1: Extreme slow range
+            testMinSpeed = 0.01;
+            testMaxSpeed = 0.1;
+            document.getElementById('testMinSpeed').value = testMinSpeed;
+            document.getElementById('testMaxSpeed').value = testMaxSpeed;
+            document.getElementById('minValue').textContent = testMinSpeed;
+            document.getElementById('maxValue').textContent = testMaxSpeed;
+
+            const test1 = testSpeedCalculation();
+            output += `<p>Test 1 (extreme slow): ${test1 ? '✅ PASS' : '❌ FAIL'}</p>`;
+            allPassed = allPassed && test1;
+
+            // Test 2: Normal range
+            testMinSpeed = 0.1;
+            testMaxSpeed = 1.2;
+            document.getElementById('testMinSpeed').value = testMinSpeed;
+            document.getElementById('testMaxSpeed').value = testMaxSpeed;
+            document.getElementById('minValue').textContent = testMinSpeed;
+            document.getElementById('maxValue').textContent = testMaxSpeed;
+
+            const test2 = testSpeedCalculation();
+            output += `<p>Test 2 (normal range): ${test2 ? '✅ PASS' : '❌ FAIL'}</p>`;
+            allPassed = allPassed && test2;
+
+            // Test 3: Fast range
+            testMinSpeed = 1.0;
+            testMaxSpeed = 4.0;
+            document.getElementById('testMinSpeed').value = testMinSpeed;
+            document.getElementById('testMaxSpeed').value = testMaxSpeed;
+            document.getElementById('minValue').textContent = testMinSpeed;
+            document.getElementById('maxValue').textContent = testMaxSpeed;
+
+            const test3 = testSpeedCalculation();
+            output += `<p>Test 3 (fast range): ${test3 ? '✅ PASS' : '❌ FAIL'}</p>`;
+            allPassed = allPassed && test3;
+
+            // Test 4: Main app integration
+            const test4 = testMainApp();
+            output += `<p>Test 4 (main app): ${test4 ? '✅ PASS' : '❌ FAIL'}</p>`;
+
+            output += `<h4 class="${allPassed ? 'success' : 'error'}">Overall: ${allPassed ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}</h4>`;
+
+            if (allPassed && test4) {
+                output += `<p class="success">🎉 Speed sliders should be working! If you're not seeing differences, try:</p>`;
+                output += `<ul>
+                    <li>Hard refresh browser (Ctrl+F5)</li>
+                    <li>Clear browser cache</li>
+                    <li>Check if swarm mode is enabled</li>
+                    <li>Use debugBirdSpeeds() in console</li>
+                </ul>`;
+            } else if (!test4) {
+                output += `<p class="error">⚠️ Main app integration failed. Testing isolated math only.</p>`;
+            }
+
+            result.innerHTML = output;
+            console.log('Automated test completed:', { allPassed, mainAppFound: test4 });
+        }
+
+        // Auto-run basic test on load
+        setTimeout(() => {
+            console.log('Running initial diagnostic...');
+            testSliderValues();
+            testSpeedCalculation();
+        }, 500);
+    </script>
+</body>
+
+</html>

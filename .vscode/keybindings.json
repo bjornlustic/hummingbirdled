@@ -1,0 +1,26 @@
+[
+    {
+        "key": "cmd+shift+r",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Hard Reset LED Simulator Server",
+        "when": "resourceExtname == '.html' || resourceExtname == '.js' || resourceExtname == '.css'"
+    },
+    {
+        "key": "cmd+shift+s",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Start LED Simulator Server",
+        "when": "resourceExtname == '.html' || resourceExtname == '.js' || resourceExtname == '.css'"
+    },
+    {
+        "key": "cmd+shift+k",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Kill All LED Simulator Servers",
+        "when": "resourceExtname == '.html' || resourceExtname == '.js' || resourceExtname == '.css'"
+    },
+    {
+        "key": "cmd+shift+o",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Open Browser to Simulator",
+        "when": "resourceExtname == '.html' || resourceExtname == '.js' || resourceExtname == '.css'"
+    }
+]

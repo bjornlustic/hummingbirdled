@@ -1,0 +1,26 @@
+{
+  "name": "hummingbird-led-simulator",
+  "version": "1.0.0",
+  "description": "64x64 LED Panel Simulator for Arduino Testing",
+  "main": "index.html",
+  "scripts": {
+    "start": "live-server --host=127.0.0.1 --port=8080 --no-browser",
+    "dev": "live-server --host=127.0.0.1 --port=8080 --no-browser",
+    "stop": "pkill -f live-server || echo 'No server running'",
+    "restart": "npm run stop && npm start",
+    "status": "ps aux | grep live-server | grep -v grep || echo 'No live-server processes found'",
+    "open": "open http://127.0.0.1:8080"
+  },
+  "keywords": [
+    "led",
+    "matrix",
+    "arduino",
+    "simulator",
+    "hummingbird"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+}

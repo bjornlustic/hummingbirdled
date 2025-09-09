@@ -1,0 +1,344 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: #000000;
+    color: #ffffff;
+    overflow: hidden;
+    /* Prevent scrolling */
+    font-weight: 300;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* h1 removed from layout */
+
+h2 {
+    color: #ffffff;
+    margin-bottom: 12px;
+    margin-top: 0;
+    font-size: 1.2em;
+    font-weight: 200;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 8px;
+}
+
+h3 {
+    color: #ffffff;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Main layout */
+.main-content {
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+    flex: 1;
+    min-height: 0;
+    height: 100vh;
+}
+
+/* Control Panel */
+.control-panel {
+    background-color: #000000;
+    border-right: 2px solid #ffffff;
+    padding: 20px;
+    width: 25vw;
+    min-width: 250px;
+    max-width: 400px;
+    height: 100vh;
+    overflow-y: auto;
+    flex-shrink: 1;
+
+    /* Custom scrollbar styling */
+    scrollbar-width: thin;
+    scrollbar-color: #ffffff #000000;
+}
+
+.control-panel::-webkit-scrollbar {
+    width: 8px;
+}
+
+.control-panel::-webkit-scrollbar-track {
+    background: #000000;
+}
+
+.control-panel::-webkit-scrollbar-thumb {
+    background: #ffffff;
+    border-radius: 4px;
+}
+
+.control-panel::-webkit-scrollbar-thumb:hover {
+    background: #ccc;
+}
+
+.control-group {
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #333;
+}
+
+.control-group:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+/* Buttons */
+.btn {
+    background-color: #ffffff;
+    border: 1px solid #ffffff;
+    color: #000000;
+    padding: 10px 16px;
+    margin: 3px 0;
+    cursor: pointer;
+    font-weight: 400;
+    transition: all 0.3s ease;
+    font-size: 12px;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    width: 100%;
+    display: block;
+    border-radius: 2px;
+}
+
+.btn:hover {
+    background-color: #000000;
+    color: #ffffff;
+}
+
+.btn.active {
+    background-color: #000000;
+    color: #ffffff;
+}
+
+.effect-btn {
+    margin: 1px 0;
+    padding: 6px 12px;
+    font-size: 11px;
+}
+
+.export-btn {
+    margin-top: 8px;
+}
+
+/* Range Slider */
+input[type="range"] {
+    width: 100%;
+    margin: 8px 0;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 2px;
+    border: none;
+    background: #ffffff;
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #ffffff;
+    cursor: pointer;
+    border: 1px solid #000000;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: #ffffff;
+    cursor: pointer;
+    border: 1px solid #000000;
+}
+
+/* Select dropdown */
+select {
+    width: 100%;
+    background-color: #000000;
+    border: 1px solid #ffffff;
+    color: #ffffff;
+    padding: 6px;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 12px;
+    margin: 8px 0;
+}
+
+select option {
+    background-color: #000000;
+    color: #ffffff;
+}
+
+/* Labels */
+label {
+    display: inline-block;
+    margin-bottom: 3px;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 300;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+span {
+    color: #ffffff;
+    font-weight: 300;
+    margin-left: 8px;
+    font-size: 12px;
+}
+
+/* Textarea */
+textarea {
+    width: 100%;
+    background-color: #000000;
+    border: 1px solid #ffffff;
+    color: #ffffff;
+    padding: 10px;
+    resize: vertical;
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    font-size: 10px;
+    line-height: 1.4;
+    height: 80px;
+    border-radius: 2px;
+    transition: border-color 0.3s ease;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #ccc;
+}
+
+/* LED Matrix Container */
+.led-container {
+    width: 75vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    background-color: #000000;
+    padding: 10px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.led-matrix {
+    display: grid;
+    /* Grid size and LED dimensions set dynamically by JavaScript */
+    background-color: #000;
+    border: 2px solid #ffffff;
+    padding: 6px;
+    border-radius: 4px;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+    /* Matrix will size dynamically to fill available space */
+    width: fit-content;
+    height: fit-content;
+}
+
+/* Individual LED */
+.led {
+    /* Width and height set dynamically by JavaScript */
+    border-radius: 50%;
+    background-color: #111;
+    transition: all 0.1s ease;
+    border: none;
+}
+
+.led.on {
+    box-shadow: 0 0 4px currentColor, 0 0 8px currentColor;
+}
+
+/* Matrix info styles removed since element was deleted */
+
+/* Responsive design - maintain layout but adjust control panel size */
+@media (max-width: 1400px) {
+    .control-panel {
+        min-width: 220px;
+        padding: 15px;
+    }
+}
+
+@media (max-width: 1000px) {
+    .control-panel {
+        min-width: 200px;
+        width: 30vw;
+        padding: 12px;
+    }
+
+    .led-container {
+        width: 70vw;
+        padding: 15px;
+    }
+
+    .control-group {
+        margin-bottom: 12px;
+    }
+}
+
+@media (max-width: 800px) {
+    .control-panel {
+        min-width: 180px;
+        width: 35vw;
+        padding: 10px;
+    }
+
+    .led-container {
+        width: 65vw;
+        padding: 10px;
+    }
+
+    h2 {
+        font-size: 0.9em;
+    }
+
+    h3 {
+        font-size: 0.8em;
+    }
+
+    .btn {
+        padding: 6px 12px;
+        font-size: 11px;
+    }
+}
+
+/* Ensure no overflow */
+html,
+body {
+    overflow: hidden;
+    height: 100%;
+}
+
+/* Status indicators */
+.status-playing {
+    border-left: 4px solid #ffffff;
+}
+
+.status-paused {
+    border-left: 4px solid #ffffff;
+}
+
+.status-stopped {
+    border-left: 4px solid #ffffff;
+}

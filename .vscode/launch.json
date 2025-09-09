@@ -1,0 +1,52 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "🚀 Start LED Simulator",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/node_modules/.bin/live-server",
+            "args": [
+                "--host=127.0.0.1",
+                "--port=8080",
+                "--no-browser"
+            ],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "preLaunchTask": "Kill All LED Simulator Servers",
+            "postDebugTask": "Show Server Status"
+        },
+        {
+            "name": "🔄 Hard Reset Server",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/node_modules/.bin/live-server",
+            "args": [
+                "--host=127.0.0.1",
+                "--port=8080",
+                "--no-browser"
+            ],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "preLaunchTask": "Hard Reset LED Simulator Server"
+        },
+        {
+            "name": "🌐 Open Browser",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/package.json",
+            "preLaunchTask": "Open Browser to Simulator",
+            "console": "none"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "🔥 Full Reset + Open Browser",
+            "configurations": [
+                "🔄 Hard Reset Server"
+            ],
+            "preLaunchTask": "Kill All LED Simulator Servers",
+            "postDebugTask": "Open Browser to Simulator"
+        }
+    ]
+}
