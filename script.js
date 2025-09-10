@@ -52,6 +52,7 @@ class LEDMatrixSimulator {
         this.swarmMinSize = 0.2;
         this.swarmMaxSize = 2.5;
         this.maxSwarmBirds = 12; // Default max birds
+        this.dotMatrixMode = true; // Default to dot matrix effect on
 
         this.init();
     }
@@ -647,8 +648,8 @@ class LEDMatrixSimulator {
             if (bird.phase !== 'waiting') {
                 let drawOrder = 'normal'; // hummingbird on top
 
-                if (bird.phase === 'flyIn' || bird.phase === 'pollinate') {
-                    drawOrder = 'behind'; // hummingbird behind flower during fly in and pollination
+                if (bird.phase === 'flyIn' || bird.phase === 'pollinate' || bird.phase === 'flyOut') {
+                    drawOrder = 'behind'; // hummingbird behind flower during fly in, pollination, and fly out
                 }
 
                 if (drawOrder === 'behind') {
@@ -1546,6 +1547,9 @@ class LEDMatrixSimulator {
         document.getElementById('breatheBtn').addEventListener('click', () => this.toggleEffect('breathing'));
         document.getElementById('pollinationBtn').addEventListener('click', () => this.toggleEffect('pollination'));
 
+        // Display mode toggle
+        document.getElementById('dotMatrixToggle').addEventListener('click', () => this.toggleDotMatrixMode());
+
         // Export button
         document.getElementById('exportBtn').addEventListener('click', () => this.exportFrameData());
     }
@@ -1556,6 +1560,18 @@ class LEDMatrixSimulator {
             container.className = 'control-panel status-playing';
         } else {
             container.className = 'control-panel status-paused';
+        }
+
+        // Update dot matrix button state
+        const dotMatrixButton = document.getElementById('dotMatrixToggle');
+        if (dotMatrixButton) {
+            if (this.dotMatrixMode) {
+                dotMatrixButton.textContent = 'Dot Matrix Mode';
+                dotMatrixButton.classList.remove('active');
+            } else {
+                dotMatrixButton.textContent = 'Solid Mode';
+                dotMatrixButton.classList.add('active');
+            }
         }
     }
 
@@ -1668,6 +1684,27 @@ class LEDMatrixSimulator {
         });
 
         this.displayFrame(this.currentFrame);
+    }
+
+    toggleDotMatrixMode() {
+        this.dotMatrixMode = !this.dotMatrixMode;
+
+        const matrixElement = document.getElementById('ledMatrix');
+        const button = document.getElementById('dotMatrixToggle');
+
+        if (this.dotMatrixMode) {
+            // Enable dot matrix mode
+            matrixElement.classList.remove('solid-mode');
+            button.textContent = 'Dot Matrix Mode';
+            button.classList.remove('active');
+            // Restore gaps
+            this.updateMatrixCSS();
+        } else {
+            // Enable solid mode (no dots)
+            matrixElement.classList.add('solid-mode');
+            button.textContent = 'Solid Mode';
+            button.classList.add('active');
+        }
     }
 
     exportFrameData() {
