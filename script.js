@@ -14,7 +14,8 @@ class LEDMatrixSimulator {
             swarm: false,
             move: false,
             breathing: false,
-            pollination: false
+            pollination: false,
+            cult: false
         };
         this.scale = 1.0;
         this.position = { x: 32, y: 32 };
@@ -43,6 +44,17 @@ class LEDMatrixSimulator {
             birdCycleDuration: 160, // Total time for one bird cycle
             totalCycleDuration: 640, // Total time for all birds (160 * 4)
             pollinationActive: false // Track if any bird is currently pollinating
+        };
+
+        // Cult animation state - birds circling the flower
+        this.cultData = {
+            timer: 0,
+            flowerPos: { x: 21, y: 22 }, // Same position as pollination
+            flowerScale: 0.9,
+            flowerWiggle: { x: 0, y: 0 },
+            birds: [], // Will hold 5 cult birds
+            maxBirds: 5,
+            initialized: false
         };
 
         // Individual bird data for swarm mode
@@ -81,6 +93,27 @@ class LEDMatrixSimulator {
                 startDelay: i * this.pollinationData.birdCycleDuration // Stagger bird starts
             });
         }
+    }
+
+    initializeCultBirds() {
+        this.cultData.birds = [];
+
+        for (let i = 0; i < this.cultData.maxBirds; i++) {
+            const hues = [0, 72, 144, 216, 288]; // Red, Yellow-Green, Blue, Purple, Magenta
+
+            this.cultData.birds.push({
+                id: i,
+                position: { x: 0, y: 0 },
+                starAngle: (i * 72) * (Math.PI / 180), // 5-point star: 0°, 72°, 144°, 216°, 288°
+                scale: 0.4 + i * 0.05, // Gradually increasing sizes: 0.4, 0.45, 0.5, 0.55, 0.6
+                baseRadius: 22, // Fixed radius for star formation
+                hue: hues[i],
+                saturation: 0.9,
+                brightness: 1.0,
+                pulseOffset: i * 0.4 // Different pulsing timing for each bird
+            });
+        }
+        this.cultData.initialized = true;
     }
 
     createMatrix() {
@@ -266,6 +299,8 @@ class LEDMatrixSimulator {
         // Apply effects
         if (this.effects.pollination) {
             displayFrame = this.applyPollinationEffect(frame);
+        } else if (this.effects.cult) {
+            displayFrame = this.applyCultEffect(frame);
         } else if (this.effects.split && this.effects.swarm) {
             displayFrame = this.applySplitSwarmEffect(frame);
         } else if (this.effects.split && this.effects.move) {
@@ -664,6 +699,76 @@ class LEDMatrixSimulator {
         });
 
         return newFrame;
+    }
+
+    applyCultEffect(frame) {
+        const newFrame = Array(this.matrixSize).fill().map(() =>
+            Array(this.matrixSize).fill({ r: 0, g: 0, b: 0 })
+        );
+
+        // Initialize cult birds if needed
+        if (!this.cultData.initialized) {
+            this.initializeCultBirds();
+        }
+
+        this.updateCultAnimation();
+
+        const data = this.cultData;
+
+        // Calculate flower position with gentle wiggle
+        const flowerX = data.flowerPos.x + data.flowerWiggle.x;
+        const flowerY = data.flowerPos.y + data.flowerWiggle.y;
+
+        // Draw static flower
+        this.drawFlowerAtPosition(newFrame, flowerX, flowerY, data.flowerScale);
+
+        // Draw all cult birds above the flower
+        data.birds.forEach((bird) => {
+            this.drawColoredHummingbirdAtPosition(newFrame, frame, bird.position.x, bird.position.y, bird.scale, bird);
+        });
+
+        return newFrame;
+    }
+
+    updateCultAnimation() {
+        const data = this.cultData;
+        data.timer++;
+
+        // Faster wind-like flower movement
+        const windIntensity = 1.8;
+        const windTime = data.timer * 0.12; // Faster wind movement
+        // Combine multiple sine waves for more natural wind effect
+        data.flowerWiggle.x = Math.sin(windTime) * windIntensity + Math.sin(windTime * 2.3) * (windIntensity * 0.4);
+        data.flowerWiggle.y = Math.cos(windTime * 0.7) * (windIntensity * 0.6) + Math.sin(windTime * 1.8) * (windIntensity * 0.3);
+
+        // Update each cult bird
+        data.birds.forEach((bird) => {
+            this.updateCultBirdMovement(bird, data);
+        });
+    }
+
+    updateCultBirdMovement(bird, data) {
+        const centerX = this.matrixSize / 2;
+        const centerY = this.matrixSize / 2;
+        const time = data.timer * 0.03; // Controlled timing
+
+        // Slowly rotate the entire star formation
+        const starRotation = time * 0.5; // Slow rotation of the whole star
+
+        // Calculate bird position at its star point with rotation
+        const currentAngle = bird.starAngle + starRotation;
+
+        // Add gentle radius pulsing for cool effect
+        const radiusPulse = Math.sin(time * 2 + bird.pulseOffset) * 3;
+        const currentRadius = bird.baseRadius + radiusPulse;
+
+        // Position bird at its star point
+        bird.position.x = centerX + Math.cos(currentAngle) * currentRadius;
+        bird.position.y = centerY + Math.sin(currentAngle) * currentRadius;
+
+        // Add gentle scale pulsing synchronized with position
+        const scalePulse = Math.sin(time * 3 + bird.pulseOffset) * 0.1;
+        bird.scale = (0.4 + bird.id * 0.05) + scalePulse; // Base size + gentle pulse
     }
 
     updatePollinationAnimation() {
@@ -1546,6 +1651,7 @@ class LEDMatrixSimulator {
         document.getElementById('moveBtn').addEventListener('click', () => this.toggleEffect('move'));
         document.getElementById('breatheBtn').addEventListener('click', () => this.toggleEffect('breathing'));
         document.getElementById('pollinationBtn').addEventListener('click', () => this.toggleEffect('pollination'));
+        document.getElementById('cultBtn').addEventListener('click', () => this.toggleEffect('cult'));
 
         // Display mode toggle
         document.getElementById('dotMatrixToggle').addEventListener('click', () => this.toggleDotMatrixMode());
@@ -1623,6 +1729,7 @@ class LEDMatrixSimulator {
             this.effects.split = false;
             this.effects.swarm = false;
             this.effects.move = false;
+            this.effects.cult = false;
             this.effects[effectName] = !this.effects[effectName];
             if (this.effects.pollination) {
                 // Reset pollination animation to start from beginning
@@ -1635,18 +1742,32 @@ class LEDMatrixSimulator {
                     bird.scale = 0.8;
                 });
             }
+        } else if (effectName === 'cult') {
+            // Cult is exclusive - disable other effects
+            this.effects.split = false;
+            this.effects.swarm = false;
+            this.effects.move = false;
+            this.effects.pollination = false;
+            this.effects[effectName] = !this.effects[effectName];
+            if (this.effects.cult) {
+                // Reset cult animation to start from beginning
+                this.cultData.timer = 0;
+                this.cultData.initialized = false; // Force re-initialization for fresh formation
+            }
         } else if (effectName === 'move') {
-            // Move can work with split, but not with swarm or pollination
+            // Move can work with split, but not with swarm, pollination, or cult
             this.effects.swarm = false;
             this.effects.pollination = false;
+            this.effects.cult = false;
             this.effects[effectName] = !this.effects[effectName];
             if (this.effects.move) {
                 this.resetMoveData();
             }
         } else if (effectName === 'swarm') {
-            // Swarm can work with split, but not with move or pollination
+            // Swarm can work with split, but not with move, pollination, or cult
             this.effects.move = false;
             this.effects.pollination = false;
+            this.effects.cult = false;
             this.effects[effectName] = !this.effects[effectName];
             // Reset swarm birds to get new random speeds/behaviors
             this.swarmBirds = null;
@@ -1655,9 +1776,10 @@ class LEDMatrixSimulator {
                 this.splitSwarmBirds = null;
             }
         } else {
-            // Split and breathing can combine with any effect except pollination
+            // Split and breathing can combine with any effect except pollination and cult
             if (effectName === 'split' || effectName === 'breathing') {
                 this.effects.pollination = false;
+                this.effects.cult = false;
             }
             this.effects[effectName] = !this.effects[effectName];
 
